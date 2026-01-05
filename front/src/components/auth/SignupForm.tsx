@@ -391,12 +391,13 @@ export function SignupForm() {
                     className="mt-1"
                   />
                   <Label htmlFor="termsAgreed" className="text-sm leading-5">
-                    <Button
-                      variant="link"
-                      className="p-0 h-auto text-sm text-primary"
+                    <Link
+                      href="/terms"
+                      target="_blank"
+                      className="text-primary hover:underline"
                     >
                       利用規約
-                    </Button>
+                    </Link>
                     に同意する *
                   </Label>
                 </div>
@@ -415,12 +416,13 @@ export function SignupForm() {
                     className="mt-1"
                   />
                   <Label htmlFor="privacyAgreed" className="text-sm leading-5">
-                    <Button
-                      variant="link"
-                      className="p-0 h-auto text-sm text-primary"
+                    <Link
+                      href="/privacy"
+                      target="_blank"
+                      className="text-primary hover:underline"
                     >
                       プライバシーポリシー
-                    </Button>
+                    </Link>
                     に同意する *
                   </Label>
                 </div>

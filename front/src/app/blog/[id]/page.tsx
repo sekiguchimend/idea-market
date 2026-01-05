@@ -10,6 +10,9 @@ import { BlogDetailPageProps } from '@/types/blog';
 import { getAuthorByBlogUserId } from '@/lib/blog-author';
 import { AuthorInfo } from '@/components/blog/AuthorInfo';
 
+// ISR: 60秒ごとにページを再検証して閲覧数を更新
+export const revalidate = 60;
+
 export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
   try {
     const { id } = await params;

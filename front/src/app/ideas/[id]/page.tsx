@@ -740,7 +740,7 @@ export default function IdeaDetailPage() {
           }
         }}
       >
-        <DialogContent className="max-w-md w-full max-h-[90vh] flex flex-col">
+        <DialogContent className="max-w-lg w-full max-h-[90vh] flex flex-col">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle>
               {purchaseStep === 1 ? '注文者情報入力' : 'お支払い情報'}
@@ -753,7 +753,7 @@ export default function IdeaDetailPage() {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="flex-1 overflow-y-auto min-h-0">
+          <div className="flex-1 overflow-y-auto min-h-0 px-1">
           {purchaseStep === 1 ? (
             <form id="purchase-form" onSubmit={handlePurchaseFormSubmit} className="space-y-4">
             {/* 企業名またはお名前 */}
@@ -829,6 +829,9 @@ export default function IdeaDetailPage() {
             {/* 正式文章化 */}
             <div className="space-y-3">
               <Label>正式文章化</Label>
+              <p className="text-sm text-muted-foreground">
+                アイデア内容を運営がビジネス文書として整理・清書するサービスです。
+              </p>
               <RadioGroup
                 value={purchaseFormData.formalDocumentation}
                 onValueChange={(value: 'required' | 'not_required') =>
