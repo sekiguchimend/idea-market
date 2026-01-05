@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { ERROR_CODES, createError } from '@/lib/constants/error-codes';
+import { recordSystemLogServer, getIpFromRequest } from '@/lib/server-logging';
 
 // 入力スキーマ
 const listQuerySchema = z.object({
@@ -128,6 +129,19 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    // システムログを記録
+    const { data: { user } } = await supabase.auth.getUser();
+    await recordSystemLogServer(supabase, {
+      userId: user?.id,
+      logType: 'admin_action',
+      action: 'UPDATE_SOLD_STATUS',
+      targetTable: 'sold',
+      targetId: id,
+      description: `購入済みアイデアの入金ステータスを${isPaid ? '入金済み' : '未入金'}に変更しました`,
+      afterData: { is_paid: isPaid },
+      ipAddress: getIpFromRequest(request),
+    });
+
     return NextResponse.json({ success: true, data });
   } catch (e) {
     return NextResponse.json(
@@ -186,6 +200,19 @@ export async function DELETE(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    // システムログを記録
+    const { data: { user } } = await supabase.auth.getUser();
+    await recordSystemLogServer(supabase, {
+      userId: user?.id,
+      logType: 'admin_action',
+      action: 'CANCEL_PURCHASE',
+      targetTable: 'sold',
+      targetId: id,
+      description: `購入を取り消しました（アイデアID: ${soldRow.idea_id}）`,
+      beforeData: { sold_id: id, idea_id: soldRow.idea_id },
+      ipAddress: getIpFromRequest(request),
+    });
 
     return NextResponse.json({ success: true });
   } catch (e) {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { recordSystemLogServer, getIpFromRequest } from '@/lib/server-logging';
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 有効なドキュメントタイプをチェック
-    const validTypes = ['terms', 'privacy', 'commerce', 'company'];
+    const validTypes = ['terms', 'privacy', 'commerce', 'company', 'advertising', 'contact'];
     if (!validTypes.includes(documentType)) {
       return NextResponse.json(
         { error: 'Invalid document type' },
@@ -57,6 +58,8 @@ export async function POST(request: NextRequest) {
       privacy: 'プライバシーポリシー',
       commerce: '特定商取引法に基づく表記',
       company: '会社情報',
+      advertising: '広告掲載について',
+      contact: 'お問い合わせ',
     };
 
     // データベースにコンテンツを保存
@@ -81,6 +84,17 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    // システムログを記録
+    await recordSystemLogServer(supabase, {
+      userId: user.id,
+      logType: 'admin_action',
+      action: 'UPDATE_DOCUMENT',
+      targetTable: 'pages_content',
+      targetId: documentType,
+      description: `${pageTitles[documentType]}を更新しました`,
+      ipAddress: getIpFromRequest(request),
+    });
 
     return NextResponse.json({
       success: true,

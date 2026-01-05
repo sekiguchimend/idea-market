@@ -138,15 +138,9 @@ export function LogDownloadModal({
                 <SelectContent>
                   <SelectItem value="login">ログインログ</SelectItem>
                   <SelectItem value="blog_view">ブログ閲覧履歴</SelectItem>
-                  <SelectItem value="access" disabled>
-                    アクセスログ（準備中）
-                  </SelectItem>
-                  <SelectItem value="error" disabled>
-                    エラーログ（準備中）
-                  </SelectItem>
-                  <SelectItem value="system" disabled>
-                    システムログ（準備中）
-                  </SelectItem>
+                  <SelectItem value="access">アクセスログ</SelectItem>
+                  <SelectItem value="error">エラーログ</SelectItem>
+                  <SelectItem value="system">システムログ</SelectItem>
                 </SelectContent>
               </Select>
             </div>

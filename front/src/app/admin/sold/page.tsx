@@ -105,7 +105,7 @@ export default function AdminSoldPage() {
               <h1 className="text-4xl md:text-5xl font-bold mb-3">
                 <span className="bg-gradient-primary bg-clip-text text-transparent">購入済みアイデア確認</span>
               </h1>
-              <p className="text-muted-foreground">soldテーブルの確認、入金ステータス更新、購入取消を行います</p>
+              <p className="text-muted-foreground">購入済みテーブルの確認、入金ステータス更新、購入取消を行います</p>
             </div>
 
             <div className="flex flex-col md:flex-row gap-3 mb-6">

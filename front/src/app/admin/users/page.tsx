@@ -18,8 +18,11 @@ import { toast } from '@/hooks/use-toast';
 import { Search, RefreshCw, Save } from 'lucide-react';
 
 type UserDetail = {
-  id: string;
   user_id: string;
+  display_name: string | null;
+  role: 'admin' | 'member';
+  profile_created_at: string;
+  id: string | null;
   full_name: string | null;
   email: string | null;
   bank_name: string | null;
@@ -63,6 +66,7 @@ export default function AdminUsersPage() {
       setLoading(true);
       const query = new URLSearchParams();
       if (params?.q) query.set('q', params.q);
+      query.set('limit', '20');
       const res = await fetch(`/api/admin/user-details?${query.toString()}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error?.message || '取得に失敗しました');
@@ -83,12 +87,12 @@ export default function AdminUsersPage() {
 
   const onSave = async (row: UserDetail) => {
     try {
-      setSavingId(row.id);
+      setSavingId(row.user_id);
       const res = await fetch('/api/admin/user-details', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: row.id,
+          user_id: row.user_id,
           full_name: row.full_name,
           email: row.email,
           bank_name: row.bank_name,
@@ -111,8 +115,8 @@ export default function AdminUsersPage() {
     }
   };
 
-  const setRowValue = (id: string, key: keyof UserDetail, value: any) => {
-    setRows(prev => prev.map(r => (r.id === id ? { ...r, [key]: value } : r)));
+  const setRowValue = (user_id: string, key: keyof UserDetail, value: any) => {
+    setRows(prev => prev.map(r => (r.user_id === user_id ? { ...r, [key]: value } : r)));
   };
 
   const total = useMemo(() => rows.length, [rows]);
@@ -127,7 +131,7 @@ export default function AdminUsersPage() {
               <h1 className="text-4xl md:text-5xl font-bold mb-3">
                 <span className="bg-gradient-primary bg-clip-text text-transparent">登録者情報修正</span>
               </h1>
-              <p className="text-muted-foreground">user_detailsを一覧・検索・編集できます</p>
+              <p className="text-muted-foreground">ユーザー情報を一覧・検索・編集できます</p>
             </div>
 
             <div className="flex flex-col md:flex-row gap-3 mb-6">
@@ -155,27 +159,37 @@ export default function AdminUsersPage() {
                 <div className="text-sm text-muted-foreground">データがありません</div>
               ) : (
                 rows.map(r => (
-                  <div key={r.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                  <div key={r.user_id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                    {/* ユーザー基本情報ヘッダー */}
+                    <div className="flex items-center gap-3 mb-4 pb-3 border-b">
+                      <div className="flex-1">
+                        <div className="font-semibold text-lg">{r.display_name || '未設定'}</div>
+                        <div className="text-xs text-muted-foreground">登録日: {new Date(r.profile_created_at).toLocaleDateString('ja-JP')}</div>
+                      </div>
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${r.role === 'admin' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                        {r.role === 'admin' ? '管理者' : 'メンバー'}
+                      </span>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label className="text-xs text-muted-foreground">氏名</Label>
-                        <Input value={r.full_name || ''} onChange={e => setRowValue(r.id, 'full_name', e.target.value)} />
+                        <Input value={r.full_name || ''} onChange={e => setRowValue(r.user_id, 'full_name', e.target.value)} />
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground">メール</Label>
-                        <Input value={r.email || ''} onChange={e => setRowValue(r.id, 'email', e.target.value)} />
+                        <Input value={r.email || ''} onChange={e => setRowValue(r.user_id, 'email', e.target.value)} />
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground">銀行名</Label>
-                        <Input value={r.bank_name || ''} onChange={e => setRowValue(r.id, 'bank_name', e.target.value)} />
+                        <Input value={r.bank_name || ''} onChange={e => setRowValue(r.user_id, 'bank_name', e.target.value)} />
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground">支店名</Label>
-                        <Input value={r.branch_name || ''} onChange={e => setRowValue(r.id, 'branch_name', e.target.value)} />
+                        <Input value={r.branch_name || ''} onChange={e => setRowValue(r.user_id, 'branch_name', e.target.value)} />
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground">口座種別</Label>
-                        <Select value={r.account_type || undefined} onValueChange={v => setRowValue(r.id, 'account_type', v)}>
+                        <Select value={r.account_type || undefined} onValueChange={v => setRowValue(r.user_id, 'account_type', v)}>
                           <SelectTrigger><SelectValue placeholder="未選択" /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="ordinary">普通</SelectItem>
@@ -185,15 +199,15 @@ export default function AdminUsersPage() {
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground">口座番号</Label>
-                        <Input value={r.account_number || ''} onChange={e => setRowValue(r.id, 'account_number', e.target.value)} />
+                        <Input value={r.account_number || ''} onChange={e => setRowValue(r.user_id, 'account_number', e.target.value)} />
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground">口座名義</Label>
-                        <Input value={r.account_holder || ''} onChange={e => setRowValue(r.id, 'account_holder', e.target.value)} />
+                        <Input value={r.account_holder || ''} onChange={e => setRowValue(r.user_id, 'account_holder', e.target.value)} />
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground">性別</Label>
-                        <Select value={r.gender || undefined} onValueChange={v => setRowValue(r.id, 'gender', v)}>
+                        <Select value={r.gender || undefined} onValueChange={v => setRowValue(r.user_id, 'gender', v)}>
                           <SelectTrigger><SelectValue placeholder="未選択" /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="male">男性</SelectItem>
@@ -204,11 +218,11 @@ export default function AdminUsersPage() {
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground">生年月日</Label>
-                        <Input type="date" value={r.birth_date || ''} onChange={e => setRowValue(r.id, 'birth_date', e.target.value)} />
+                        <Input type="date" value={r.birth_date || ''} onChange={e => setRowValue(r.user_id, 'birth_date', e.target.value)} />
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground">都道府県</Label>
-                        <Select value={r.prefecture || undefined} onValueChange={v => setRowValue(r.id, 'prefecture', v)}>
+                        <Select value={r.prefecture || undefined} onValueChange={v => setRowValue(r.user_id, 'prefecture', v)}>
                           <SelectTrigger><SelectValue placeholder="未選択" /></SelectTrigger>
                           <SelectContent>
                             {PREFS.map(p => (
@@ -219,8 +233,8 @@ export default function AdminUsersPage() {
                       </div>
                     </div>
                     <div className="flex justify-end mt-4">
-                      <Button onClick={() => onSave(r)} disabled={savingId === r.id} className="flex items-center gap-2">
-                        <Save className="h-4 w-4" /> {savingId === r.id ? '保存中...' : '保存'}
+                      <Button onClick={() => onSave(r)} disabled={savingId === r.user_id} className="flex items-center gap-2">
+                        <Save className="h-4 w-4" /> {savingId === r.user_id ? '保存中...' : '保存'}
                       </Button>
                     </div>
                   </div>

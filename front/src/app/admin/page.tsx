@@ -47,7 +47,7 @@ export default function AdminPage() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"
+                        d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"
                       />
                     </svg>
                   </div>
@@ -60,12 +60,12 @@ export default function AdminPage() {
                     </p>
                   </div>
                 </div>
-                <a
-                  href="/admin/users"
+                <button
                   className="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition-colors duration-200"
+                  onClick={() => handleDocumentSelect('advertising')}
                 >
                   管理画面
-                </a>
+                </button>
               </div>
             </div>
 
@@ -298,7 +298,7 @@ export default function AdminPage() {
                   </div>
                   <div>
                     <h2 className="text-lg font-semibold text-gray-900">購入済みアイデア確認</h2>
-                    <p className="text-gray-600 text-sm">soldの確認、入金ステータス変更、購入取消を行います</p>
+                    <p className="text-gray-600 text-sm">購入済みテーブルの確認、入金ステータス更新、購入取消を行います</p>
                   </div>
                 </div>
                 <a
