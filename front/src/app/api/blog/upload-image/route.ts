@@ -72,19 +72,16 @@ export async function POST(request: NextRequest) {
       .from('blog-images')
       .getPublicUrl(fileName);
 
-    // microCMS用の画像オブジェクト形式で返す
-    // 画像のサイズを取得するために、Imageオブジェクトを使用
     const imageUrl = urlData.publicUrl;
-    
+
     return NextResponse.json({
       success: true,
       url: imageUrl,
       path: data.path,
-      // microCMSの画像フィールド形式に合わせる
       image: {
         url: imageUrl,
-        width: 0, // クライアント側で取得する
-        height: 0, // クライアント側で取得する
+        width: 0,
+        height: 0,
       },
     });
   } catch (error: any) {
@@ -95,5 +92,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-
