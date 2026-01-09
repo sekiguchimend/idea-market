@@ -27,7 +27,7 @@ export interface Blog extends MicroCMSContentBase {
   title: string;
   content: string;
   category?: Category;
-  user_id?: string;
+  user_id?: string | { user_id: string };  // 文字列またはコンテンツ参照オブジェクト
   image?: MicroCMSImageField;
   publishedAt: string;
 }
@@ -35,6 +35,7 @@ export interface Blog extends MicroCMSContentBase {
 /** microCMSの作者型定義 */
 export interface Author extends MicroCMSContentBase {
   user_id: string;
+  name?: string;
 }
 /** microCMSのAPIレスポンス型 */
 export interface MicroCMSListResponse<T> {

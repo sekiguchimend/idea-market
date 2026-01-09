@@ -10,19 +10,31 @@ interface AuthorInfoProps {
 }
 
 /**
- * ブログ記事の著者情報を表示するコンポーネント
+ * 表示名から頭文字を取得する
  */
-export function AuthorInfo({ 
-  author, 
-  className = '', 
-  showBio = false 
-}: AuthorInfoProps) {
-  const initials = author.display_name
+function getInitials(displayName: string): string {
+  // メールアドレスの場合は最初の1文字を大文字で
+  if (displayName.includes('@')) {
+    return displayName.charAt(0).toUpperCase();
+  }
+  // それ以外は空白で分割して各単語の頭文字を取得
+  return displayName
     .split(' ')
     .map(name => name.charAt(0))
     .join('')
     .toUpperCase()
-    .slice(0, 2);
+    .slice(0, 2) || displayName.charAt(0).toUpperCase();
+}
+
+/**
+ * ブログ記事の著者情報を表示するコンポーネント
+ */
+export function AuthorInfo({
+  author,
+  className = '',
+  showBio = false
+}: AuthorInfoProps) {
+  const initials = getInitials(author.display_name);
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
@@ -70,12 +82,7 @@ export function AuthorInfo({
  * ブログ記事一覧で使用する簡略版の著者情報コンポーネント
  */
 export function AuthorInfoCompact({ author, className = '' }: AuthorInfoProps) {
-  const initials = author.display_name
-    .split(' ')
-    .map(name => name.charAt(0))
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+  const initials = getInitials(author.display_name);
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>

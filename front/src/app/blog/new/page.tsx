@@ -32,16 +32,26 @@ import {
   Type,
 } from 'lucide-react';
 import Link from 'next/link';
-import { getCurrentUser } from '@/lib/supabase/auth';
+import { getCurrentUser, getProfile } from '@/lib/supabase/auth';
 
-// 現在のユーザーIDを取得
-const getCurrentUserId = async (): Promise<string | null> => {
+// 現在のユーザー情報を取得（IDとdisplay_name）
+const getCurrentUserInfo = async (): Promise<{ id: string; displayName: string } | null> => {
   const { user, error } = await getCurrentUser();
   if (error || !user) {
     console.error('ユーザ情報取得エラー:', error);
     return null;
   }
-  return user.id;
+
+  // プロファイルからdisplay_nameを取得
+  const { data: profile, error: profileError } = await getProfile(user.id);
+  if (profileError) {
+    console.error('プロファイル取得エラー:', profileError);
+  }
+
+  return {
+    id: user.id,
+    displayName: profile?.display_name || user.email?.split('@')[0] || '名無し',
+  };
 };
 
 
@@ -58,6 +68,7 @@ export default function BlogNewPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesLoaded, setCategoriesLoaded] = useState(false);
   const [authors, setAuthors] = useState<Author[]>([]);
   const [authorsLoaded, setAuthorsLoaded] = useState(false);
   const [formData, setFormData] = useState<BlogCreateData>({
@@ -87,11 +98,9 @@ export default function BlogNewPage() {
         setCategories(data.contents || []);
       } catch (error) {
         console.error('カテゴリの取得に失敗しました:', error);
-        toast({
-          title: 'エラー',
-          description: 'カテゴリの取得に失敗しました',
-          variant: 'destructive',
-        });
+        // エラー時もUIをブロックしない
+      } finally {
+        setCategoriesLoaded(true);
       }
     };
     fetchCategories();
@@ -124,6 +133,7 @@ export default function BlogNewPage() {
   }, []);
 
   // 現在のユーザーが著者として登録されているかをチェック、登録されていない場合はmicroCMSに登録する
+  // 注意: 著者登録に失敗してもブログ作成は可能（user_idはSupabaseから取得）
   useEffect(() => {
     const checkAuthor = async () => {
       // 既に実行済みの場合は何もしない
@@ -132,13 +142,14 @@ export default function BlogNewPage() {
       }
 
       try {
-        const currentUserId = await getCurrentUserId();
-        if (currentUserId === null) {
-          console.error('ユーザーIDが取得できませんでした');
+        const userInfo = await getCurrentUserInfo();
+        if (userInfo === null) {
+          console.error('ユーザー情報が取得できませんでした');
+          authorCheckExecutedRef.current = true; // 再試行を防ぐ
           return;
         }
 
-        if (!authors.map((author) => author.user_id).includes(currentUserId)) {        
+        if (!authors.map((author) => author.user_id).includes(userInfo.id)) {
           // 実行フラグを設定
           authorCheckExecutedRef.current = true;
 
@@ -147,17 +158,20 @@ export default function BlogNewPage() {
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ user_id: currentUserId }),
+            body: JSON.stringify({
+              user_id: userInfo.id,
+              name: userInfo.displayName, // Supabaseから取得した表示名を送信
+            }),
           });
 
           const data = await response.json();
-          
+
           if (!response.ok) {
-            // エラーの場合はフラグをリセット
-            authorCheckExecutedRef.current = false;
-            throw new Error(data.error || '著者登録に失敗しました');
+            // 著者登録失敗はログに記録するが、ブログ作成は続行可能
+            console.warn('著者登録に失敗しました（ブログ作成は可能です）:', data.error || data.details);
+            return;
           }
-          
+
           // 成功した場合、著者リストを再取得して状態を更新
           if (data.author) {
             setAuthors(prevAuthors => [...prevAuthors, data.author]);
@@ -167,17 +181,12 @@ export default function BlogNewPage() {
           authorCheckExecutedRef.current = true;
         }
       } catch (error) {
-        console.error('著者登録エラー:', error);
-        // エラーの場合はフラグをリセット
-        authorCheckExecutedRef.current = false;
-        toast({
-          title: 'エラー',
-          description: '著者登録に失敗しました',
-          variant: 'destructive',
-        });
+        // 著者登録失敗はログに記録するが、ブログ作成は続行可能
+        console.warn('著者登録処理でエラーが発生しました（ブログ作成は可能です）:', error);
+        authorCheckExecutedRef.current = true; // 再試行を防ぐ
       }
     };
-    
+
     // 著者データが読み込まれ、まだ実行されていない場合のみ実行
     if (authorsLoaded && !authorCheckExecutedRef.current) {
       checkAuthor();
@@ -206,11 +215,12 @@ export default function BlogNewPage() {
     setIsLoading(true);
 
     try {
-      // 現在のユーザーIDを取得
-      const currentUserId = await getCurrentUserId();
-      if (!currentUserId) {
-        throw new Error('ユーザーIDが取得できませんでした。ログインしてください。');
+      // 現在のユーザー情報を取得
+      const userInfo = await getCurrentUserInfo();
+      if (!userInfo) {
+        throw new Error('ユーザー情報が取得できませんでした。ログインしてください。');
       }
+      const currentUserId = userInfo.id;
 
       // エディターから最新のコンテンツを取得（画像を含む）
       let finalContent = formData.content;
@@ -640,7 +650,9 @@ export default function BlogNewPage() {
                   </Select>
                   {categories.length === 0 && (
                     <p className="text-sm text-muted-foreground">
-                      カテゴリを読み込み中...
+                      {categoriesLoaded
+                        ? 'カテゴリがありません（microCMSでカテゴリを作成してください）'
+                        : 'カテゴリを読み込み中...'}
                     </p>
                   )}
                 </div>

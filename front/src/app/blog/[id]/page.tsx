@@ -28,9 +28,14 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
     }
     
     const viewCount = await getBlogViewCount(id);
-    
+
+    // デバッグ: ブログのuser_idを確認
+    console.log('ブログID:', id);
+    console.log('ブログのuser_id:', blog.user_id);
+
     // 著者情報を取得
     const author = await getAuthorByBlogUserId(blog.user_id);
+    console.log('取得した著者情報:', author);
 
     // 読了時間の計算（簡易版）
     const readingTime = Math.ceil(

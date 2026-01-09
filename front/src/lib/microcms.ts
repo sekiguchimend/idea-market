@@ -326,10 +326,10 @@ export async function getAuthors(): Promise<MicroCMSListResponse<Author>> {
 
 /**
  * microCMSに新しい著者を作成する
- * @param authorData 著者データ
+ * @param authorData 著者データ（user_idとname）
  * @returns 作成された著者データ
  */
-export async function createAuthor(authorData: { user_id: string }): Promise<Author> {
+export async function createAuthor(authorData: { user_id: string; name: string }): Promise<Author> {
   try {
     if (!client) {
       throw new Error('microCMSクライアントが利用できません');
@@ -339,12 +339,14 @@ export async function createAuthor(authorData: { user_id: string }): Promise<Aut
       endpoint: 'authors',
       content: {
         user_id: authorData.user_id,
+        name: authorData.name,
       },
     });
 
     return {
       id: response.id,
       user_id: authorData.user_id,
+      name: authorData.name,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

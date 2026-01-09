@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { client, getAuthors } from '@/lib/microcms';
+import { client } from '@/lib/microcms';
 
 // ブログ記事の作成
 export async function POST(request: NextRequest) {
@@ -52,39 +52,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 著者のcontentIdを取得
-    let authorContentId: string | null = null;
-    
-    try {
-      const authorsResponse = await getAuthors();
-      const author = authorsResponse.contents.find(author => author.user_id === user_id);
-      
-      if (!author) {
-        return NextResponse.json(
-          {
-            error: '指定されたユーザーIDに対応する著者が見つかりません',
-            user_id,
-          },
-          { status: 404 }
-        );
-      }
-      
-      authorContentId = author.id;
-    } catch (authorError: any) {
-      return NextResponse.json(
-        {
-          error: '著者情報の取得に失敗しました',
-          details: authorError.message,
-        },
-        { status: 500 }
-      );
-    }
-
     // microCMSに送信するデータを準備
+    // user_idにはSupabaseのユーザーIDをそのまま保存
     const createData: any = {
       title,
       content,
-      user_id: authorContentId, // 著者のcontentIdを設定
+      user_id: user_id, // SupabaseのユーザーIDをそのまま設定
     };
 
     // publishedAtが提供されている場合のみ追加

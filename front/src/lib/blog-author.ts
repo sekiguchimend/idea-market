@@ -1,5 +1,4 @@
-import { supabase } from './supabase/client';
-import { getAuthors } from './microcms';
+import { createClient } from './supabase/server';
 
 /**
  * 著者情報の型定義
@@ -13,128 +12,159 @@ export interface AuthorInfo {
 }
 
 /**
- * モック著者データ（著者登録がない場合）
+ * 著者なしの場合のデフォルト値
  */
-const MOCK_AUTHOR: AuthorInfo = {
+const UNKNOWN_AUTHOR: AuthorInfo = {
   id: 'unknown',
-  display_name: '著者登録なし',
+  display_name: '著者なし',
   avatar_url: undefined,
-  bio: 'この記事の著者は登録されていません',
+  bio: undefined,
   isRegistered: false,
 };
 
 /**
  * ブログ記事のuser_idから著者情報を取得する
- * @param blogUserId ブログ記事のuser_idフィールド（著者のcontentId）
- * @returns 著者情報またはモックデータ
+ * microCMSのブログのuser_idフィールドからSupabaseのユーザーIDを取得し、profilesから情報を取得
+ * @param blogUserId ブログ記事のuser_idフィールド（オブジェクトまたは文字列）
+ * @returns 著者情報
  */
-export async function getAuthorByBlogUserId(blogUserId: string | undefined): Promise<AuthorInfo> {
+export async function getAuthorByBlogUserId(blogUserId: string | { user_id: string } | undefined): Promise<AuthorInfo> {
   try {
-    // user_idが未設定の場合はモックデータを返す
+    // user_idが未設定の場合は著者なし
     if (!blogUserId) {
-      return MOCK_AUTHOR;
+      return UNKNOWN_AUTHOR;
     }
 
-    // 1. microCMSから著者のcontentIdでSupabaseのuser_idを取得
-    const authorsResponse = await getAuthors();
-    const author = authorsResponse.contents.find(author => author.id === blogUserId);
+    // SupabaseのユーザーIDを取得（オブジェクトの場合は.user_id、文字列の場合はそのまま）
+    const supabaseUserId = typeof blogUserId === 'object' ? blogUserId.user_id : blogUserId;
 
-    if (!author) {
-      return MOCK_AUTHOR;
+    if (!supabaseUserId) {
+      return UNKNOWN_AUTHOR;
     }
 
-    const supabaseUserId = author.user_id;
+    // サーバー用Supabaseクライアントを作成
+    const supabase = await createClient();
 
-    // 2. Supabaseのprofileテーブルから著者情報を取得
-    const { data: profile, error } = await supabase
+    // Supabaseのprofilesテーブルから著者情報を取得
+    const { data: profile } = await supabase
       .from('profiles')
-      .select('id, display_name, avatar_url')
+      .select('id, display_name')
       .eq('id', supabaseUserId)
       .single();
 
-    if (error || !profile) {
-      // プロフィールが見つからない場合でも基本情報は返す
-      return {
-        id: supabaseUserId,
-        display_name: 'ユーザー',
-        avatar_url: undefined,
-        bio: undefined,
-        isRegistered: true,
-      };
+    // user_detailsから氏名とメールアドレスを取得
+    const { data: userDetails } = await supabase
+      .from('user_details')
+      .select('full_name, email')
+      .eq('user_id', supabaseUserId)
+      .single();
+
+    // 優先順位: full_name > display_name > email（最初の5文字）> 著者なし
+    let displayName: string | null = null;
+    if (userDetails?.full_name) {
+      displayName = userDetails.full_name;
+    } else if (profile?.display_name) {
+      displayName = profile.display_name;
+    } else if (userDetails?.email) {
+      // メールアドレスは最初の5文字 + "..." で表示
+      displayName = userDetails.email.substring(0, 5) + '...';
+    }
+
+    // 表示する名前がない場合は著者なし
+    if (!displayName) {
+      return UNKNOWN_AUTHOR;
     }
 
     return {
-      id: profile.id,
-      display_name: profile.display_name || 'ユーザー',
-      avatar_url: profile.avatar_url || undefined,
+      id: supabaseUserId,
+      display_name: displayName,
+      avatar_url: undefined,
       bio: undefined,
       isRegistered: true,
     };
 
   } catch (error) {
-    return MOCK_AUTHOR;
+    // エラー時は著者なし
+    return UNKNOWN_AUTHOR;
   }
 }
 
 /**
  * 複数のブログ記事の著者情報を一括取得する（パフォーマンス向上のため）
- * @param blogUserIds ブログ記事のuser_idフィールドの配列
- * @returns 著者情報のマップ（key: blogUserId, value: AuthorInfo）
+ * microCMSのブログのuser_idフィールドからSupabaseのユーザーIDを取得し、profilesから情報を取得
+ * @param blogUserIds ブログ記事のuser_idフィールドの配列（オブジェクトまたは文字列）
+ * @returns 著者情報のマップ（key: supabaseUserId, value: AuthorInfo）
  */
 export async function getAuthorsByBlogUserIds(
-  blogUserIds: (string | undefined)[]
+  blogUserIds: (string | { user_id: string } | undefined)[]
 ): Promise<Map<string, AuthorInfo>> {
   const authorMap = new Map<string, AuthorInfo>();
 
   try {
-    // 有効なuser_idのみを抽出
-    const validUserIds = blogUserIds.filter((id): id is string => !!id);
-    
-    if (validUserIds.length === 0) {
+    // SupabaseのユーザーIDを抽出
+    const supabaseUserIds: string[] = [];
+    for (const blogUserId of blogUserIds) {
+      if (!blogUserId) continue;
+      const id = typeof blogUserId === 'object' ? blogUserId.user_id : blogUserId;
+      if (id) supabaseUserIds.push(id);
+    }
+
+    if (supabaseUserIds.length === 0) {
       return authorMap;
     }
 
-    // 1. microCMSから著者情報を一括取得
-    const authorsResponse = await getAuthors();
-    const authors = authorsResponse.contents.filter(author => 
-      validUserIds.includes(author.id)
-    );
+    // サーバー用Supabaseクライアントを作成
+    const supabase = await createClient();
 
-    // 2. Supabaseから対応するプロフィール情報を一括取得
-    const supabaseUserIds = authors.map(author => author.user_id);
-    
-    if (supabaseUserIds.length > 0) {
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('id, display_name, avatar_url')
-        .in('id', supabaseUserIds);
+    // Supabaseからプロフィール情報を一括取得
+    const uniqueUserIds = [...new Set(supabaseUserIds)];
 
-      // 3. データをマップに格納
-      for (const author of authors) {
-        const profile = profiles?.find((p: any) => p.id === author.user_id);
-        
-        authorMap.set(author.id, {
-          id: author.user_id,
-          display_name: profile?.display_name || 'ユーザー',
-          avatar_url: profile?.avatar_url || undefined,
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, display_name')
+      .in('id', uniqueUserIds);
+
+    // user_detailsから氏名とメールアドレスを一括取得
+    const { data: userDetailsList } = await supabase
+      .from('user_details')
+      .select('user_id, full_name, email')
+      .in('user_id', uniqueUserIds);
+
+    // データをマップに格納
+    for (const userId of supabaseUserIds) {
+      const profile = profiles?.find((p: any) => p.id === userId);
+      const userDetails = userDetailsList?.find((u: any) => u.user_id === userId);
+
+      // 優先順位: full_name > display_name > email（最初の5文字）> 著者なし
+      let displayName: string | null = null;
+      if (userDetails?.full_name) {
+        displayName = userDetails.full_name;
+      } else if (profile?.display_name) {
+        displayName = profile.display_name;
+      } else if (userDetails?.email) {
+        // メールアドレスは最初の5文字 + "..." で表示
+        displayName = userDetails.email.substring(0, 5) + '...';
+      }
+
+      if (displayName) {
+        authorMap.set(userId, {
+          id: userId,
+          display_name: displayName,
+          avatar_url: undefined,
           bio: undefined,
           isRegistered: true,
         });
-      }
-    }
-
-    // 4. 見つからなかったuser_idにはモックデータを設定
-    for (const userId of validUserIds) {
-      if (!authorMap.has(userId)) {
-        authorMap.set(userId, MOCK_AUTHOR);
+      } else {
+        authorMap.set(userId, UNKNOWN_AUTHOR);
       }
     }
 
   } catch (error) {
-    // エラー時はすべてモックデータで埋める
-    for (const userId of blogUserIds) {
-      if (userId) {
-        authorMap.set(userId, MOCK_AUTHOR);
+    // エラー時は著者なし
+    for (const blogUserId of blogUserIds) {
+      if (blogUserId) {
+        const id = typeof blogUserId === 'object' ? blogUserId.user_id : blogUserId;
+        if (id) authorMap.set(id, UNKNOWN_AUTHOR);
       }
     }
   }
