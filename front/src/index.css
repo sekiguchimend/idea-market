@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Symbols+2&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -244,5 +246,18 @@ All colors MUST be HSL.
     flex: 1 1 auto;
     min-height: 0;
     overflow: auto;
+  }
+
+  /* React Quillエディタと表示側で同じフォントを使用 */
+  .quill-root .ql-editor,
+  .prose {
+    font-family:
+      var(--font-noto-sans-jp),
+      'Noto Sans JP',
+      'Hiragino Sans',
+      'Hiragino Kaku Gothic ProN',
+      'Meiryo',
+      sans-serif,
+      'Noto Sans Symbols 2' !important;
   }
 }

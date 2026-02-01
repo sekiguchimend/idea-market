@@ -14,7 +14,18 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['var(--font-noto-sans-jp)', 'Noto Sans JP', 'sans-serif'],
+        sans: [
+          'var(--font-noto-sans-jp)',
+          'Noto Sans JP',
+          'Hiragino Sans',
+          'Hiragino Kaku Gothic ProN',
+          'Meiryo',
+          'sans-serif',
+          'Apple Symbols',
+          'Segoe UI Symbol',
+          'Noto Sans Symbols',
+          'Noto Sans Symbols 2',
+        ],
       },
       colors: {
         border: 'hsl(var(--border))',

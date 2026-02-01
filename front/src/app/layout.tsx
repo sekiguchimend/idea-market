@@ -32,12 +32,10 @@ export const metadata: Metadata = {
     'アイデアを価値に変える革新的なマーケットプラットフォーム。技術案・事業案・デザイン・レシピまで、あらゆるアイデアを売買・収益化できます。',
   icons: {
     icon: [
-      { url: '/favicon.ico', sizes: 'any' },
-      { url: '/icon.png', type: 'image/png' },
-      { url: '/logo.avif', type: 'image/avif' },
+      { url: '/idea_logo.png', type: 'image/png' },
     ],
-    shortcut: '/favicon.ico',
-    apple: '/logo.avif',
+    shortcut: '/idea_logo.png',
+    apple: '/idea_logo.png',
   },
 };
 

@@ -108,7 +108,7 @@ const Header = () => {
           <Link href="/" className="flex items-center space-x-2 group">
             <div className="relative">
               <Image
-                src="/logo.avif"
+                src="/idea_logo.png"
                 alt="アイデアマーケット Logo"
                 width={32}
                 height={32}

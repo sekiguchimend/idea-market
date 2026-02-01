@@ -48,9 +48,12 @@ const getCurrentUserInfo = async (): Promise<{ id: string; displayName: string }
     console.error('プロファイル取得エラー:', profileError);
   }
 
+  // メールアドレスは最初の5文字 + "..." で表示
+  const emailDisplayName = user.email ? user.email.substring(0, 5) + '...' : '名無し';
+
   return {
     id: user.id,
-    displayName: profile?.display_name || user.email?.split('@')[0] || '名無し',
+    displayName: profile?.display_name || emailDisplayName,
   };
 };
 
