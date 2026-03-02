@@ -158,9 +158,6 @@ const Features = () => {
                       {step.step}
                     </span>
                   </div>
-                  {index < steps.length - 1 && (
-                    <div className="hidden lg:block absolute top-10 left-full w-full h-0.5 bg-gradient-to-r from-primary/50 to-transparent transform -translate-y-1/2" />
-                  )}
                 </div>
                 <h3 className="text-xl font-bold mb-3 text-foreground group-hover:text-primary transition-colors">
                   {step.title}
